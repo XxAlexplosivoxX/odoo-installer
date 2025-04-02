@@ -17,7 +17,6 @@ Write-Host "
 
 $IsNecesaryReboot = $false
 
-# verifica si python está instalado y su versión de mayor a python 3
 if ( $pythonVersion -like '*Python 3.*' ) {
     Write-Host "[+] - Python has succesful installed" -ForegroundColor Green
 } else {
