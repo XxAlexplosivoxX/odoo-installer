@@ -15,6 +15,36 @@ Write-Host "
 
 " -ForegroundColor Cyan
 
+function Downloader {
+    # Declara los parametros de la función marcandolos como requeridos
+    param (
+        [Parameter(Mandatory=$true)]
+        [String]$Url,
+        [Parameter(Mandatory=$true)]
+        [String]$Filename
+    )
+    
+    $destination = ".\" + $Filename + ".exe"
+
+    # En la variable result se guarda la referencia al objeto creado por el proceso de transferencia de bits 
+    # generado por el método Start-Bitstransfer
+    $result = Start-BitsTransfer -Source $Url -Destination $destination -TransferType Download -Asynchronous
+    $isDownloadFinished = $false;
+
+    # El bucle finaliza hasta que se complete la descarga
+    # (mientras la variable $isDownloadFinished no contenga el valor booleano true)
+    While ($isDownloadFinished -ne $true) {
+        sleep 0.01
+
+        # Guarda en la varable $jobstate el estado del proceso en una cadena de texto
+        # retornado del metodo JobState que se encuentra dentro del objeto referenciado la variable $result
+        $jobstate = $result.JobState;
+        if($jobstate.ToString() -eq "Transferred") { $isDownloadFinished = $true }
+        $percentComplete = ($result.BytesTransferred / $result.BytesTotal) * 100
+        Write-Progress -Activity ("Downloading " + $filename +"... " + $result.BytesTransferred + " / " + $result.BytesTotal + ", " + ($result.BytesTotal - $result.BytesTransferred) + " bytes left") -PercentComplete $percentComplete
+    }
+}
+
 $IsNecesaryReboot = $false
 
 if ( $pythonVersion -like '*Python 3.*' ) {
@@ -28,7 +58,7 @@ if ( $pythonVersion -like '*Python 3.*' ) {
         Write-Host "[+] - Python has succesful installed" -ForegroundColor Green
     } else {
         Write-Host "[+] - Downloading..." -ForegroundColor Green
-        Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.13.2/python-3.13.2-amd64.exe" -OutFile "./python-installer.exe"
+        Downloader -Url "https://www.python.org/ftp/python/3.13.2/python-3.13.2-amd64.exe" -Filename "python-installer"
         Write-Host "[+] - Installing..." -ForegroundColor Green
         Start-Process -Wait -Filepath "./python-installer.exe"
         Write-Host "[+] - Python has succesful installed" -ForegroundColor Green
@@ -49,7 +79,7 @@ while($true) {
             break
         } else {
             Write-Host "[+] - Downloading..." -ForegroundColor Green
-            Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vs_BuildTools.exe"  -OutFile "./c++-build-tools-installer.exe"
+            Downloader -Url "https://aka.ms/vs/17/release/vs_BuildTools.exe"  -Filename "c++-build-tools-installer"
             Write-Host "[+] - Executing..." -ForegroundColor Green
             Start-Process -Wait -Filepath "./c++-build-tools-installer.exe"
             Write-host "[!] - OK..." -ForegroundColor Green
@@ -92,7 +122,7 @@ while($true) {
             Write-host "[!] - OK..." -ForegroundColor Green
         } else {
             Write-Host "[+] - Downloading..." -ForegroundColor Green
-            Invoke-WebRequest -Uri "https://sbp.enterprisedb.com/getfile.jsp?fileid=1259402"  -OutFile "./postgresql-installer.exe"
+            Download -Url "https://sbp.enterprisedb.com/getfile.jsp?fileid=1259402"  -Filename "postgresql-installer"
             Write-Host "[+] - Executing..." -ForegroundColor Green
             Start-Process -Wait -Filepath "./postgresql-installer.exe"
             Write-host "[!] - OK..." -ForegroundColor Green
@@ -138,7 +168,7 @@ while($iteration) {
 
 $url =  -join("https://nightly.odoo.com/",$odooVersion,"/nightly/windows/odoo_",$odooVersion,".latest.exe")
 Write-Host "[+] - Downloading..." -ForegroundColor Green
-Invoke-WebRequest -Uri $url -OutFile "./odoo-installer.exe"
+Downloader -Url $url -Filename "odoo-installer"
 Write-Host "[+] - Executing..." -ForegroundColor Green
 Start-Process -Wait -FilePath "./odoo-installer.exe"
 Write-Host "[+] - Odoo is succesfully installed :D !!." -ForegroundColor Green
