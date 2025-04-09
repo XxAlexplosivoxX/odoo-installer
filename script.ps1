@@ -1,3 +1,4 @@
+Import-Module bitstransfer
 $pythonVersion = python --version
 clear
 Write-Host "
@@ -15,6 +16,7 @@ Write-Host "
 
 " -ForegroundColor Cyan
 
+# Declara una función para descargar los instaladores
 function Downloader {
     # Declara los parametros de la función marcandolos como requeridos
     param (
@@ -24,8 +26,7 @@ function Downloader {
         [String]$Filename
     )
     
-    $destination = ".\" + $Filename + ".exe"
-
+    $destination = -join($HOME,"\",$Filename)
     # En la variable result se guarda la referencia al objeto creado por el proceso de transferencia de bits 
     # generado por el método Start-Bitstransfer
     $result = Start-BitsTransfer -Source $Url -Destination $destination -TransferType Download -Asynchronous
@@ -41,8 +42,12 @@ function Downloader {
         $jobstate = $result.JobState;
         if($jobstate.ToString() -eq "Transferred") { $isDownloadFinished = $true }
         $percentComplete = ($result.BytesTransferred / $result.BytesTotal) * 100
-        Write-Progress -Activity ("Downloading " + $filename +"... " + $result.BytesTransferred + " / " + $result.BytesTotal + ", " + ($result.BytesTotal - $result.BytesTransferred) + " bytes left") -PercentComplete $percentComplete
+        Write-Progress -Activity ("Downloading " + $Filename +"... " + $result.BytesTransferred + " bytes (" +  [math]::Round((($result.BytesTransferred / 1024) / 1024),1) + " Mb)" + " / " +  [math]::Round((($result.BytesTotal / 1024) / 1024),1) + " Mb total") -PercentComplete $percentComplete
     }
+    Write-Progress -Activity ("Downloading " + $Filename +"... " + $result.BytesTransferred + " bytes (" +  [math]::Round((($result.BytesTransferred / 1024) / 1024),1) + " Mb)" + " / " +  [math]::Round((($result.BytesTotal / 1024) / 1024),1) + " Mb total") -Completed
+    # Get-BistTransfer retorna los procesos de transferencia de bits que se hayan hecho para que luego
+    # Complete-BitsTransfer marque como completada la transferencia de bits y se guarde el archivo 
+    Get-BitsTransfer | Complete-BitsTransfer
 }
 
 $IsNecesaryReboot = $false
@@ -51,16 +56,18 @@ if ( $pythonVersion -like '*Python 3.*' ) {
     Write-Host "[+] - Python has succesful installed" -ForegroundColor Green
 } else {
     Write-Host "[!] - Python has not been installed" -ForegroundColor Red
-    if ( Test-Path -Path "./python-installer.exe" ) {
+    if ( Test-Path -Path "$env:USERPROFILE\python-3.13.2-amd64.exe" ) {
         Write-host "[!] - The installer is already downloaded..." -ForegroundColor Green
         Write-Host "[+] - Executing..." -ForegroundColor Green
-        Start-Process -Wait -Filepath "./python-installer.exe"
+        $DestinationPython = "$env:USERPROFILE\python-3.13.2-amd64.exe"
+        Start-Process -Wait -Filepath $DestinationPython
         Write-Host "[+] - Python has succesful installed" -ForegroundColor Green
     } else {
         Write-Host "[+] - Downloading..." -ForegroundColor Green
-        Downloader -Url "https://www.python.org/ftp/python/3.13.2/python-3.13.2-amd64.exe" -Filename "python-installer"
+        Downloader -Url "https://www.python.org/ftp/python/3.13.2/python-3.13.2-amd64.exe" -Filename "python-3.13.2-amd64.exe"
         Write-Host "[+] - Installing..." -ForegroundColor Green
-        Start-Process -Wait -Filepath "./python-installer.exe"
+        $DestinationPython = "$env:USERPROFILE\python-3.13.2-amd64.exe"
+        Start-Process -Wait -Filepath $DestinationPython
         Write-Host "[+] - Python has succesful installed" -ForegroundColor Green
     }
     $IsNecesaryReboot = $true
@@ -71,17 +78,21 @@ while($true) {
     $verification = (($iscppInstalled -contains "y") -and ($iscppInstalled -contains "Y"))
 
     if (!$verification) {
-        if ( Test-Path -Path "./c++-build-tools-installer.exe" ) {
+        if ( Test-Path -Path ("$env:USERPROFILE\"+"vs_BuildTools.exe") ) {
             Write-host "[!] - The installer is already downloaded..." -ForegroundColor Green
             Write-Host "[+] - Executing..." -ForegroundColor Green
-            Start-Process -Wait -Filepath "./c++-build-tools-installer.exe"
+            $DestinationCpp = "$HOME\vs_BuildTools.exe"
+            Write-Host $DestinationCpp
+            Start-Process -Wait -Filepath $DestinationCpp
             Write-host "[!] - OK..." -ForegroundColor Green
             break
         } else {
             Write-Host "[+] - Downloading..." -ForegroundColor Green
-            Downloader -Url "https://aka.ms/vs/17/release/vs_BuildTools.exe"  -Filename "c++-build-tools-installer"
+            Downloader -Url "https://aka.ms/vs/17/release/vs_BuildTools.exe" -Filename "vs_BuildTools.exe"
             Write-Host "[+] - Executing..." -ForegroundColor Green
-            Start-Process -Wait -Filepath "./c++-build-tools-installer.exe"
+            $DestinationCpp = "$HOME\vs_BuildTools.exe"
+            Write-Host $DestinationCpp
+            Start-Process -Wait -Filepath $DestinationCpp
             Write-host "[!] - OK..." -ForegroundColor Green
             break
         }
@@ -115,16 +126,18 @@ while($true) {
             Write-Host "[!] - '$postgresqlPATH' doesn't exist!!." -ForegroundColor Red
         }
     } else {
-        if ( Test-Path -Path "./postgresql-installer.exe" ) {
+        if ( Test-Path -Path "$env:USERPROFILE\postgresql-installer.exe" ) {
             Write-host "[!] - The installer is already downloaded..." -ForegroundColor Green
             Write-Host "[+] - Executing..." -ForegroundColor Green
-            Start-Process -Wait -Filepath "./postgresql-installer.exe"
+            $DestinationPostgre = "$env:USERPROFILE\postgresql-installer.exe"
+            Start-Process -Wait -Filepath $DestinationPostgre
             Write-host "[!] - OK..." -ForegroundColor Green
         } else {
             Write-Host "[+] - Downloading..." -ForegroundColor Green
-            Download -Url "https://sbp.enterprisedb.com/getfile.jsp?fileid=1259402"  -Filename "postgresql-installer"
+            Downloader -Url "https://sbp.enterprisedb.com/getfile.jsp?fileid=1259402"  -Filename "postgresql-installer.exe"
             Write-Host "[+] - Executing..." -ForegroundColor Green
-            Start-Process -Wait -Filepath "./postgresql-installer.exe"
+            $DestinationPostgre = "$env:USERPROFILE\postgresql-installer.exe"
+            Start-Process -Wait -Filepath $DestinationPostgre
             Write-host "[!] - OK..." -ForegroundColor Green
         }
     }
@@ -166,9 +179,10 @@ while($iteration) {
     }
 }
 
-$url =  -join("https://nightly.odoo.com/",$odooVersion,"/nightly/windows/odoo_",$odooVersion,".latest.exe")
 Write-Host "[+] - Downloading..." -ForegroundColor Green
-Downloader -Url $url -Filename "odoo-installer"
+$url =  -join("https://nightly.odoo.com/",$odooVersion,"/nightly/windows/odoo_",$odooVersion,".latest.exe")
+Downloader -Url $url -Filename "odoo-installer.exe"
 Write-Host "[+] - Executing..." -ForegroundColor Green
-Start-Process -Wait -FilePath "./odoo-installer.exe"
+$DentinationOdoo = "$env:USERPROFILE\odoo-installer.exe"
+Start-Process -Wait -FilePath $DestinationOdoo
 Write-Host "[+] - Odoo is succesfully installed :D !!." -ForegroundColor Green
