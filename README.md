@@ -1,5 +1,7 @@
 # odoo-installer
-
+<div align=center>
+  <img src=movida.png>
+</div>
 This is a script in PowerShell for install [Odoo](https://www.odoo.com/) and it's dependencies only in windows.
 <div align=center>
   v1 plushie spinning:
