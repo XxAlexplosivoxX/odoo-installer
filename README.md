@@ -13,3 +13,7 @@ Just type in a PowerShell terminal:
 ```
 irm https://raw.githubusercontent.com/XxAlexplosivoxX/odoo-installer/refs/heads/main/script.ps1 | iex
 ```
+
+## User Manual
+> [!NOTE]
+> user manual will be available soon...
