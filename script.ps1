@@ -29,6 +29,7 @@ function Downloader {
     $destination = -join($HOME,"\",$Filename)
     # En la variable result se guarda la referencia al objeto creado por el proceso de transferencia de bits 
     # generado por el método Start-Bitstransfer
+    Write-Host $destination
     $result = Start-BitsTransfer -Source $Url -Destination $destination -TransferType Download -Asynchronous
     $isDownloadFinished = $false;
 
