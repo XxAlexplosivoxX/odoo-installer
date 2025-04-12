@@ -1,8 +1,11 @@
 # odoo-installer
 
 This is a script in PowerShell for install [Odoo](https://www.odoo.com/) and it's dependencies only in windows.
-
-> this is my school project 
+<div align=center>
+  v1 plushie spinning:
+  <br>
+  <img src=v1-ultrakill.gif>  
+</div>
 
 ## Installation
 
