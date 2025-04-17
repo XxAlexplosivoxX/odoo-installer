@@ -2,54 +2,100 @@ Import-Module bitstransfer
 $pythonVersion = python --version
 clear
 Write-Host "
-             __               _            __        ____   _____           _       __ 
-  ____  ____/ /___  ____     (_)___  _____/ /_____ _/ / /  / ___/__________(_)___  / /_
- / __ \/ __  / __ \/ __ \   / / __ \/ ___/ __/ __  / / /   \__ \/ ___/ ___/ / __ \/ __/
-/ /_/ / /_/ / /_/ / /_/ /  / / / / (__  ) /_/ /_/ / / /   ___/ / /__/ /  / / /_/ / /_  
-\____/\__,_/\____/\____/  /_/_/ /_/____/\__/\__,_/_/_/   /____/\___/_/  /_/ .___/\__/  
-                                                                         /_/           
-   ___          ___   __                 __         _         
-  / _ )__ __   / _ | / /____ __    ___  / /__  ___ (_)  _____ 
- / _  / // /  / __ |/ / -_) \ /   / _ \/ / _ \(_-</ / |/ / _ \
-/____/\_, /  /_/ |_/_/\__/_\_\___/ .__/_/\___/___/_/|___/\___/
-     /___/                  /___/_/                           
+01101000 01101111 01101100 01100001 01111000 01100100 01111000 01111000 01100100 01111000 01100100 01100100
+   ____      __               ____           __        ____   ____  _____                   _       __ 
+  / __ \____/ /___  ____     /  _/___  _____/ /_____ _/ / /  / __ \/ ___/   _______________(_)___  / /_
+ / / / / __  / __ \/ __ \    / // __ \/ ___/ __/ __ '/ / /  / /_/ /\__ \   / ___/ ___/ ___/ / __ \/ __/
+/ /_/ / /_/ / /_/ / /_/ /  _/ // / / (__  ) /_/ /_/ / / /  / ____/___/ /  (__  ) /__/ /  / / /_/ / /_  
+\____/\__,_/\____/\____/  /___/_/ /_/____/\__/\__,_/_/_/  /_/    /____/  /____/\___/_/  /_/ .___/\__/  
+                                                                                         /_/           
+01100101 01110100 01101111 01100101 01110011 01101111 01101100 01101111 01100100 01100101 01100011 01101111 
 
+By: XxAlex_plosivoxX
+
+01101110 01101111 01101010 01101111 01100100 01100001
 " -ForegroundColor Cyan
 
 # Declara una función para descargar los instaladores
 function Downloader {
-    # Declara los parametros de la función marcandolos como requeridos
+    <#
+    .SYNOPSIS
+        Descarga un archivo desde una URL utilizando BitsTransfer.
+    
+    .PARAMETER Url
+        Cadena con la URL del archivo a descargar.
+    
+    .PARAMETER Filename
+        Nombre con el que se guardará el archivo (se descargará en el directorio HOME del usuario).
+    #>
+    
     param (
         [Parameter(Mandatory=$true)]
         [String]$Url,
         [Parameter(Mandatory=$true)]
         [String]$Filename
     )
+
+    # Elimina procesos de tranferencia de bits para evitar confictos
+    Get-BitsTransfer | Remove-BitsTransfer -Confirm:$false
+
+    # Guarda como una cadena el dictorio en donde se guardará el archivo al ser decargado
+    $destination = Join-Path -Path $HOME -ChildPath $Filename
     
-    $destination = -join($HOME,"\",$Filename)
-    # En la variable result se guarda la referencia al objeto creado por el proceso de transferencia de bits 
-    # generado por el método Start-Bitstransfer
-    Write-Host $destination
-    $result = Start-BitsTransfer -Source $Url -Destination $destination -TransferType Download -Asynchronous
+    try {
+        <#
+        en la variable result se guarda un objeto que hace referencia 
+        al proceso de tranferencia de bits iniciado con el método Start-BitsTransfer
+
+        #> 
+        $result = Start-BitsTransfer -Source $Url -Destination $destination -TransferType Download -Asynchronous
+    } catch {
+        <#
+        en el caso que por alguna extraña razón falle, muestra el error.
+
+        Al imprimir en pantalla "[!] - Error initiating transfer: $_"
+        incluye el contenido de la variable automática $_, que en el contexto
+        de catch contiene información sobre el error que se ha producido.
+
+        $_ Es una de las muchas variables automáticas que exiten en PowerShell,
+        #>
+        Write-Error "[!] - Error initiating transfer: $_"
+        # El return es pa salir de la función, no retorna nada :D
+        return
+    }
+    
+    # inicializo la variable que indica si la descarga se ha completao
     $isDownloadFinished = $false;
 
-    # El bucle finaliza hasta que se complete la descarga
-    # (mientras la variable $isDownloadFinished no contenga el valor booleano true)
-    While ($isDownloadFinished -ne $true) {
+    while (-not $isDownloadFinished) {
+        # cada milésima de segundo
         sleep 0.01
+        <#
+        guardará el estado de la transferencia de bits dentro de la variable jobstate (estadodelachamba)
 
-        # Guarda en la varable $jobstate el estado del proceso en una cadena de texto
-        # retornado del metodo JobState que se encuentra dentro del objeto referenciado la variable $result
-        $jobstate = $result.JobState;
-        if($jobstate.ToString() -eq "Transferred") { $isDownloadFinished = $true }
+
+        #>
+        $jobstate = $result.JobState
+        if ($jobstate.ToString() -eq "Transferred") {
+            $isDownloadFinished = $true
+        }
         $percentComplete = ($result.BytesTransferred / $result.BytesTotal) * 100
-        Write-Progress -Activity ("Downloading " + $Filename +"... " + $result.BytesTransferred + " bytes (" +  [math]::Round((($result.BytesTransferred / 1024) / 1024),1) + " Mb)" + " / " +  [math]::Round((($result.BytesTotal / 1024) / 1024),1) + " Mb total") -PercentComplete $percentComplete
+        $downloadedMb = [math]::Round((($result.BytesTransferred / 1024) / 1024), 1)
+        $totalMb      = [math]::Round((($result.BytesTotal / 1024) / 1024), 1)
+        $progressMessage = "Downloading $Filename... $($result.BytesTransferred) bytes ($downloadedMb Mb / $totalMb Mb total)"
+        Write-Progress -Activity $progressMessage -PercentComplete $percentComplete
     }
-    Write-Progress -Activity ("Downloading " + $Filename +"... " + $result.BytesTransferred + " bytes (" +  [math]::Round((($result.BytesTransferred / 1024) / 1024),1) + " Mb)" + " / " +  [math]::Round((($result.BytesTotal / 1024) / 1024),1) + " Mb total") -Completed
-    # Get-BistTransfer retorna los procesos de transferencia de bits que se hayan hecho para que luego
-    # Complete-BitsTransfer marque como completada la transferencia de bits y se guarde el archivo 
-    Get-BitsTransfer | Complete-BitsTransfer
+
+    Write-Progress -Activity "Downloading $Filename" -Completed
+
+    try {
+        $result | Complete-BitsTransfer
+        Write-Host "Descarga completada exitosamente: $destination"
+    } catch {
+        Write-Error "Error al completar la transferencia: $_"
+    }
 }
+
 
 $IsNecesaryReboot = $false
 
@@ -111,7 +157,7 @@ while($true) {
     if ($verification) {
         $postgresqlPATH = Read-Host "[?] - Please enter the bin directory of you PostgreSQL instalation"
         if (!$postgresqlPATH) {
-            Write-Host "[!] - The input must be not empty!!." -ForegroundColor Red
+            Write-Error "[!] - The input must be not empty!!."
         } elseif ( Test-Path -Path $postgresqlPATH ) {
             Write-Host "[+] - directory '$postgresqlPATH' for PostgreSQL exist!..." -ForegroundColor Green
             if ( $env:PATH -contains $postgresqlPATH ) {
@@ -124,7 +170,7 @@ while($true) {
                 break
             }
         } else {
-            Write-Host "[!] - '$postgresqlPATH' doesn't exist!!." -ForegroundColor Red
+            Write-Error "[!] - '$postgresqlPATH' doesn't exist!!."
         }
     } else {
         if ( Test-Path -Path "$env:USERPROFILE\postgresql-installer.exe" ) {
@@ -175,7 +221,7 @@ while($iteration) {
             break
         }
         default {
-            Write-Host "[!] - Don't match with any version!!" -ForegroundColor Red
+            Write-Error "[!] - Don't match with any version!!"
         }
     }
 }
