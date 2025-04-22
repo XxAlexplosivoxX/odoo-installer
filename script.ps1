@@ -230,6 +230,5 @@ Write-Host "[+] - Downloading..." -ForegroundColor Green
 $url =  -join("https://nightly.odoo.com/",$odooVersion,"/nightly/windows/odoo_",$odooVersion,".latest.exe")
 Downloader -Url $url -Filename "odoo-installer.exe"
 Write-Host "[+] - Executing..." -ForegroundColor Green
-$DentinationOdoo = "$env:USERPROFILE\odoo-installer.exe"
-Start-Process -Wait -FilePath $DestinationOdoo
+Start-Process -Wait -FilePath "odoo-installer.exe"
 Write-Host "[+] - Odoo is succesfully installed :D !!." -ForegroundColor Green
