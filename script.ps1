@@ -90,9 +90,9 @@ function Downloader {
 
     try {
         $result | Complete-BitsTransfer
-        Write-Host "Descarga completada exitosamente: $destination"
+        Write-Host "[!] - Download complete: $destination"
     } catch {
-        Write-Error "Error al completar la transferencia: $_"
+        Write-Error "[!] - Error: $_"
     }
 }
 
