@@ -19,8 +19,7 @@ By: XxAlex_plosivoxX
 # Declara una función para descargar los instaladores
 function Downloader {
     <#
-    .SYNOPSIS
-        Descarga un archivo desde una URL utilizando BitsTransfer.
+    Descarga un archivo desde una URL utilizando BitsTransfer.
     
     .PARAMETER Url
         Cadena con la URL del archivo a descargar.
